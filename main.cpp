@@ -102,6 +102,32 @@ template <std::size_t N> static std::array<int, N> primeComputation(const std::s
   return _r; // Return the array of prime numbers
 };
 
+// compute primes using Sieve of Eratosthenes...
+constexpr std::vector<int> sieveOfEratosthenes(const std::size_t limit) {
+  std::vector<bool> isPrime(limit + 1, true); // Initialize a boolean vector
+  std::vector<int> primes;                    // Vector to store prime numbers
+
+  isPrime[0] = isPrime[1] = false; // 0 and 1 are not prime numbers
+
+  for (int p = 2; p * p <= limit; ++p) {
+    if (isPrime[p]) {
+      // Mark all multiples of p as non-prime
+      for (int i = p * p; i <= limit; i += p) {
+        isPrime[i] = false;
+      }
+    }
+  }
+
+  // Collect all prime numbers
+  for (int p = 2; p <= limit; ++p) {
+    if (isPrime[p]) {
+      primes.push_back(p);
+    }
+  }
+
+  return primes;
+};
+
 // Function to raise a base 'b' to the exponent 'e'
 // This function computes b^e using a simple loop.
 static constexpr int raise(const int b, const int e) noexcept {
@@ -207,6 +233,8 @@ template <typename T, std::size_t N> static constexpr int getRange(const std::ar
   // Return the difference between the maximum and minimum values
   return r[r.size() - 1] - r[0];
 };
+
+
 
 }; // namespace Math
 
@@ -380,12 +408,17 @@ int main(int argc, char **argv) {
 
   // Prime Numbers computation, prime numbers are numbers that divide only by 1 or themselves,
   // for example, 3 is prime because it only divides by 3 and 1.
-  constexpr std::size_t threshold = 200;                                  // prime value threshold, computation stops at this value
+  constexpr std::size_t threshold = 60;                                  // prime value threshold, computation stops at this value
   constexpr std::size_t PMAX = 20;                                        // max entries for prime computation result
   std::array<int, PMAX> primes = Math::primeComputation<PMAX>(threshold); // compute primes and store max 100 values
-
-  std::cout << "Computed Prime Numbers: ";
+  std::vector<int> sievePrimes = Math::sieveOfEratosthenes(threshold); // using sieve...
+  std::cout << "Computed Prime Numbers(Standard): ";
   for (const auto i : primes) {
+    std::cout << i << ", ";
+  }
+  std::cout << "\n";
+  std::cout << "Computed Prime Numbers(Sieve):    ";
+  for (const auto i : sievePrimes) {
     std::cout << i << ", ";
   }
   std::cout << "\n";
