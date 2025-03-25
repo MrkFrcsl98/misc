@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <math.h>
+#include <unordered_set>
 #include <stdint.h>
+#include <set>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -235,7 +237,99 @@ template <typename T, std::size_t N> static constexpr int getRange(const std::ar
   return r[r.size() - 1] - r[0];
 };
 
+template <typename T, std::size_t N> class Set {
+  std::array<T, N> _set;
 
+public:
+  explicit inline Set() noexcept {};
+  inline Set(const std::array<T, N> &_s) noexcept : _set(_s) {};
+
+  inline constexpr std::size_t cardinality() const noexcept { return this->_set.size(); };
+
+  template <std::size_t eN> inline constexpr bool equal(const std::array<T, eN> &_o) noexcept {
+    if (this->_set.size() != _o.size())
+      return false;
+    bool _i{true};
+    std::array<T, N> a1(this->_set);
+    std::array<T, eN> a2(_o);
+    std::sort(a1.begin(), a1.end());
+    std::sort(a2.begin(), a2.end());
+    for (std::size_t E{0}; E < this->_set.size(); ++E) {
+      if (a1[E] != a2[E]) {
+        _i = false;
+        break;
+      }
+    };
+    return _i;
+  };
+
+  template <typename eT, std::size_t eN> inline constexpr bool subsetOf(const std::array<eT, eN> &_o) noexcept {
+    bool i;
+    for (const T &e : this->_set) {
+      i = false;
+      for (const T &j : _o) {
+        if (e == j) {
+          i = true;
+        }
+      }
+      if (!i)
+        break;
+    }
+    return i;
+  };
+
+  inline constexpr bool properSubsetOf(const std::array<T, N> &_o) noexcept {
+    std::set<T> a1(this->_set.begin(), this->_set.end()), a2(_o.begin(), _o.end());
+    std::size_t c{0};
+    for (const T &e : a1) {
+      if (a2.find(e) == a2.end()) {
+        return false;
+      }
+      ++c;
+    }
+    return c < a2.size();
+  };
+
+  inline void alloc(const std::array<T, N> _s) noexcept {
+    this->_set = _s;
+  };
+
+  
+  // A∪B={x∣x∈A or x∈B}
+  template <std::size_t aS>
+  inline const std::set<T> unionOf(const std::array<T, aS>& _s) noexcept {
+    std::set<T> s1(this->_set.begin(), this->_set.end()), s2(_s.begin(), _s.end());
+    s1.insert(s2.begin(), s2.end());
+    return s1;
+  };
+
+  // A∩B={x∣x∈A and x∈B}
+  template <std::size_t aS>
+  inline const std::set<T> intersectionOf(const std::array<T, aS>& _s) noexcept {
+    std::set<T> s1(this->_set.begin(), this->_set.end()), s2(_s.begin(), _s.end()), s3;
+    for(const T& e: s1){
+        if(s2.find(e) != s2.end()){
+            s3.insert(e);
+        }
+    }
+    return s3;
+  };
+
+  // A′={x∈U∣x∈/A}
+  template <std::size_t aS>
+  inline const std::set<T> complementOf(const std::array<T, aS>& _s) noexcept {
+    std::set<T> s1(this->_set.begin(), this->_set.end()), s2(_s.begin(), _s.end()), s3;
+    for(const T& e: s2){
+        if(s1.find(e) == s1.end()){
+            s3.insert(e);
+        }
+    }
+    return s3;
+  };
+  
+
+  ~Set() noexcept { this->_set = {}; };
+};
 
 }; // namespace Math
 
@@ -409,10 +503,10 @@ int main(int argc, char **argv) {
 
   // Prime Numbers computation, prime numbers are numbers that divide only by 1 or themselves,
   // for example, 3 is prime because it only divides by 3 and 1.
-  constexpr std::size_t threshold = 60;                                  // prime value threshold, computation stops at this value
+  constexpr std::size_t threshold = 60;                                   // prime value threshold, computation stops at this value
   constexpr std::size_t PMAX = 20;                                        // max entries for prime computation result
   std::array<int, PMAX> primes = Math::primeComputation<PMAX>(threshold); // compute primes and store max 100 values
-  std::vector<int> sievePrimes = Math::sieveOfEratosthenes(threshold); // using sieve...
+  std::vector<int> sievePrimes = Math::sieveOfEratosthenes(threshold);    // using sieve...
   std::cout << "Computed Prime Numbers(Standard): ";
   for (const auto i : primes) {
     std::cout << i << ", ";
@@ -475,6 +569,50 @@ int main(int argc, char **argv) {
   for (const int i : range_set)
     std::cout << i << ", ";
   std::cout << "} = " << getRange << "\n";
+
+  std::array<int, 5> setA(            {1, 2, 3, 4, 5}  );
+  std::array<int, setA.size()> setB(  {1, 2, 3, 4, 5}  );
+
+  Math::Set<int, setA.size()> newSet(setA);
+  std::cout << "SetA cardinality: " << newSet.cardinality() << "\n";
+  std::cout << "SetA == SetB? " << std::boolalpha << newSet.equal(setB) << "\n";
+  std::cout << "SetA subset of SetB? " << std::boolalpha << newSet.subsetOf(setB) << "\n";
+  std::cout << "SetA proper Subset of SetB? " << std::boolalpha << newSet.properSubsetOf(setB) << "\n";
+
+  setA[1] = 1;
+  setA[2] = 1;
+  newSet.alloc(setA);
+  std::cout << "SetA == SetB? " << std::boolalpha << newSet.equal(setB) << "\n";
+  std::cout << "SetA subset of SetB? " << std::boolalpha << newSet.subsetOf(setB) << "\n";
+  std::cout << "SetA proper Subset of SetB? " << std::boolalpha << newSet.properSubsetOf(setB) << "\n";
+
+  std::set<int> unionSet = newSet.unionOf(setB);
+  std::set<int> intersectionSet = newSet.intersectionOf(setB);
+  std::set<int> complementSet = newSet.complementOf(setB);
+  
+  std::cout << "Union of: {";
+  for(const auto e: setA) std::cout << e << ", ";
+  std::cout << "} and {";
+  for(const auto e: setB) std::cout << e << ", ";
+  std::cout << "} => {";
+  for(const auto e: unionSet) std::cout << e << ", ";
+  std::cout << "}\n";
+
+  std::cout << "Intersection of: {";
+  for(const auto e: setA) std::cout << e << ", ";
+  std::cout << "} and {";
+  for(const auto e: setB) std::cout << e << ", ";
+  std::cout << "} => {";
+  for(const auto e: intersectionSet) std::cout << e << ", ";
+  std::cout << "}\n";
+
+  std::cout << "Complement of: {";
+  for(const auto e: setA) std::cout << e << ", ";
+  std::cout << "} from U {";
+  for(const auto e: setB) std::cout << e << ", ";
+  std::cout << "} => {";
+  for(const auto e: complementSet) std::cout << e << ", ";
+  std::cout << "}\n";
 
   return 0;
 }
