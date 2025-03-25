@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <string>
 #include <unordered_set>
+#include <deque>
+#include <list>
+#include <stdexcept>
+#include <cassert>
 
 namespace Math {
 // Function to get the modulo class of n with respect to m
@@ -430,7 +434,299 @@ const std::string hexToBinary(const std::string &hex) noexcept {
 
   // Return the final binary string representation.
   return result;
+};
+
+// Function to compute the factorial of a number 'n' down to 'r'
+// Example: factorial(5, 2) computes 5 * 4 * 3
+static constexpr std::size_t factorial(std::size_t n, std::size_t r) {
+  // If n is 0 or r is greater than or equal to n, return 0
+  if (n == 0 || r >= n)
+    return 0;
+
+  // Initialize result to n
+  std::size_t result = n;
+
+  // Multiply result by each number from n-1 down to r+1
+  while (--n > r) {
+    result *= n;
+  }
+
+  // Return the computed factorial
+  return result;
 }
+
+// Function to compute the number of permutations (with or without repetition)
+// If rep is true, compute n^r (permutations with repetition)
+// If rep is false, compute n! / (n-r)! (permutations without repetition)
+static constexpr std::size_t permutationFunction(std::size_t n, std::size_t r, bool rep) { return rep ? raise(n, r) : factorial(n, r); }
+
+// Function to compute the number of combinations (with or without repetition)
+// If rep is true, compute (n+r-1)! / (r! * (n-1)!)
+// If rep is false, compute n! / (r! * (n-r)!)
+static constexpr std::size_t combinationFunction(std::size_t n, std::size_t r, bool rep) {
+  // If n or r is 0, return 0
+  if (n == 0 || r == 0)
+    return 0;
+
+  // Compute the numerator
+  std::size_t num = rep ? factorial(n + r - 1, 1) : factorial(n, n - r);
+
+  // Compute the denominator
+  std::size_t denom = factorial(r, 1) * (rep ? factorial(n - 1, 1) : 1);
+
+  // Return the result of num / denom
+  return num / denom;
+}
+
+// Function to compute the number of combinations (with or without repetition)
+// This version includes an output parameter 'o' for additional information
+static constexpr std::size_t combinationFunction(std::size_t n, std::size_t r, bool rep, unsigned int &o) {
+  // If n is 0, n is less than r, or r is 0, return 0
+  if (n == 0 || n < r || r == 0)
+    return 0;
+
+  // Compute the numerator
+  std::size_t num = rep ? factorial(n + r - 1, 1) : factorial(n, n - r);
+
+  // Compute the denominator
+  std::size_t denom = factorial(r, 1) * (rep ? factorial(n - 1, 1) : 1);
+
+  // Return the result of num / denom
+  return num / denom;
+};
+
+namespace Matrices {
+
+// Template structure to define a matrix with rows (rows) and columns (cols)
+template <int Rows, int Cols>
+struct MatrixDimensions {
+  std::uint32_t rows{Rows}; // Number of rows
+  std::uint32_t cols{Cols}; // Number of columns
+
+  // Default constructor
+  MatrixDimensions() = default;
+
+  // Parameterized constructor to initialize matrix dimensions
+  MatrixDimensions(std::uint32_t rows, std::uint32_t cols) : rows(Rows), cols(Cols) {}
+};
+
+// Template specialization to check if a type is a container (default is false)
+template <typename T>
+struct IsContainer : std::false_type {};
+
+// Template specialization to check if a std::vector is a container (true)
+template <typename T, typename Alloc>
+struct IsContainer<std::vector<T, Alloc>> : std::true_type {};
+
+// Template specialization to check if a std::deque is a container (true)
+template <typename T, typename Alloc>
+struct IsContainer<std::deque<T, Alloc>> : std::true_type {};
+
+// Template specialization to check if a std::list is a container (true)
+template <typename T, typename Alloc>
+struct IsContainer<std::list<T, Alloc>> : std::true_type {};
+
+// Template structure to define a matrix with elements of type T and fixed dimensions (rows, cols)
+template <typename T, std::uint32_t Rows, std::uint32_t Cols>
+struct Matrix {
+  std::vector<std::deque<T>> elements{}; // 2D vector to store matrix elements
+  MatrixDimensions<Rows, Cols> dimensions{Rows, Cols}; // Matrix dimensions
+
+  // Default constructor
+  Matrix() = default;
+
+  // Parameterized constructor to initialize matrix elements and dimensions
+  Matrix(std::vector<std::deque<T>> elements, MatrixDimensions<Rows, Cols> dimensions)
+      : elements(std::move(elements)), dimensions(dimensions) {}
+
+  // Assignment operator overload for Matrix
+  template <typename U, std::uint32_t R, std::uint32_t C>
+  Matrix<U, R, C>& operator=(const Matrix<U, R, C>& other) {
+    std::cout << "Copy constructor overload\n";
+    elements = other.elements; // Copy elements
+    dimensions = other.dimensions; // Copy dimensions
+    return *this;
+  }
+
+  // Equality operator overload to compare matrices
+  bool operator==(const Matrix<T, Rows, Cols>& other) const {
+    std::cout << "Equality comparison\n";
+    // Compare dimensions first
+    if (dimensions.rows != other.dimensions.rows || dimensions.cols != other.dimensions.cols) {
+      return false;
+    }
+    // Compare elements
+    for (std::uint32_t i = 0; i < dimensions.rows; ++i) {
+      for (std::uint32_t j = 0; j < dimensions.cols; ++j) {
+        if (elements[i][j] != other.elements[i][j]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // Distribute elements from a vector into the matrix row-wise
+  void distributeRowWise(const std::vector<T>& input) {
+    reset(); // Reset the matrix
+    std::size_t index = 0;
+    for (std::uint32_t i = 0; i < dimensions.rows && index < input.size(); ++i) {
+      for (std::uint32_t j = 0; j < dimensions.cols && index < input.size(); ++j) {
+        elements[i][j] = input[index++];
+      }
+    }
+  }
+
+  // Distribute elements from a 2D vector into the matrix
+  void distributeFrom2DVector(const std::vector<std::deque<T>>& input) {
+    reset(); // Reset the matrix
+    for (std::uint32_t i = 0; i < std::min(dimensions.rows, static_cast<std::uint32_t>(input.size())); ++i) {
+      for (std::uint32_t j = 0; j < std::min(dimensions.cols, static_cast<std::uint32_t>(input[i].size())); ++j) {
+        elements[i][j] = input[i][j];
+      }
+    }
+  }
+
+  // Set new dimensions for the matrix and resize the internal vectors
+  template <typename SizeType>
+  void setDimensions(SizeType newRows, SizeType newCols) {
+    dimensions.rows = newRows;
+    dimensions.cols = newCols;
+    elements.resize(newRows);
+    for (auto& row : elements) {
+      row.resize(newCols);
+    }
+  }
+
+  // Reset the matrix to its original dimensions
+  void reset() {
+    elements.resize(dimensions.rows);
+    for (auto& row : elements) {
+      row.resize(dimensions.cols);
+    }
+  }
+
+  // Transpose the matrix (swap rows and columns)
+  void transpose() {
+    std::vector<std::deque<T>> transposedElements(dimensions.cols, std::deque<T>(dimensions.rows));
+    for (std::uint32_t i = 0; i < dimensions.rows; ++i) {
+      for (std::uint32_t j = 0; j < dimensions.cols; ++j) {
+        transposedElements[j][i] = elements[i][j];
+      }
+    }
+    elements.swap(transposedElements);
+    std::swap(dimensions.rows, dimensions.cols);
+  }
+
+  // Addition operator overload for matrices
+  template <typename U, std::uint32_t R, std::uint32_t C>
+  Matrix<U, R, C> operator+(const Matrix<U, R, C>& other) const {
+    if (other.dimensions.rows != dimensions.rows || other.dimensions.cols != dimensions.cols) {
+      throw std::runtime_error("Matrices do not match!");
+    }
+    Matrix<U, R, C> result;
+    result.setDimensions(dimensions.rows, dimensions.cols);
+    for (std::uint32_t i = 0; i < dimensions.rows; ++i) {
+      for (std::uint32_t j = 0; j < dimensions.cols; ++j) {
+        result.elements[i][j] = elements[i][j] + other.elements[i][j];
+      }
+    }
+    return result;
+  }
+
+  // Get the size of the matrix (total number of elements)
+  std::size_t size() const {
+    return dimensions.rows * dimensions.cols;
+  }
+
+  void print() const {
+    for (std::uint32_t i = 0; i < dimensions.rows; ++i) {
+        for (std::uint32_t j = 0; j < dimensions.cols; ++j) {
+            std::cout << elements[i][j] << " "; // Print each element followed by a space
+        }
+        std::cout << std::endl; // New line after each row
+    }
+};
+
+};
+
+static void runTests() {
+    // Test 1: Default Constructor
+    Matrix<int, 2, 3> matrix1;
+    assert(matrix1.size() == 6); // 2 rows * 3 cols
+    std::cout << "Test 1 (Default Constructor): Passed\n";
+
+    // Test 2: Parameterized Constructor
+    Matrix<int, 2, 3> matrix2({{1, 2, 3}, {4, 5, 6}}, MatrixDimensions<2, 3>());
+    assert(matrix2.elements[0][0] == 1);
+    assert(matrix2.elements[1][2] == 6);
+    std::cout << "Test 2 (Parameterized Constructor): Passed\n";
+
+    // Test 3: Assignment Operator
+    Matrix<int, 2, 3> matrix3;
+    matrix3 = matrix2;
+    assert(matrix3 == matrix2);
+    std::cout << "Test 3 (Assignment Operator): Passed\n";
+
+    // Test 4: Equality Operator
+    assert(matrix2 == matrix3);
+    std::cout << "Test 4 (Equality Operator): Passed\n";
+
+    // Test 5: Distribute Row Wise
+    std::vector<int> input1 = {7, 8, 9, 10, 11, 12};
+    matrix1.distributeRowWise(input1);
+    assert(matrix1.elements[0][0] == 7);
+    assert(matrix1.elements[1][2] == 12);
+    std::cout << "Test 5 (Distribute Row Wise): Passed\n";
+
+    // Test 6: Distribute From 2D Vector
+    std::vector<std::deque<int>> input2 = {{13, 14, 15}, {16, 17, 18}};
+    matrix1.distributeFrom2DVector(input2);
+    assert(matrix1.elements[0][0] == 13);
+    assert(matrix1.elements[1][1] == 17);
+    std::cout << "Test 6 (Distribute From 2D Vector): Passed\n";
+
+    // Test 7: Set Dimensions
+    matrix1.setDimensions(3, 2);
+    assert(matrix1.dimensions.rows == 3);
+    assert(matrix1.dimensions.cols == 2);
+    std::cout << "Test 7 (Set Dimensions): Passed\n";
+
+    // Test 8: Reset
+    matrix1.reset();
+    assert(matrix1.elements.size() == 3);
+    assert(matrix1.elements[0].size() == 2);
+    std::cout << "Test 8 (Reset): Passed\n";
+
+    // Test 9: Transpose
+    matrix1.distributeRowWise(input1);
+    matrix1.transpose();
+    assert(matrix1.elements[0][0] == 7); // After transpose, this should be the first element
+    assert(matrix1.elements[1][0] == 8); // This should be the second element
+    std::cout << "Test 9 (Transpose): Passed\n";
+
+    // Test 10: Addition Operator
+    Matrix<int, 2, 3> matrix4({{1, 1, 1}, {1, 1, 1}}, MatrixDimensions<2, 3>());
+    Matrix<int, 2, 3> result = matrix2 + matrix4;
+    assert(result.elements[0][0] == 2);
+    assert(result.elements[1][2] == 7);
+    std::cout << "Test 10 (Addition Operator): Passed\n";
+
+    // Test 11: Size
+    assert(matrix2.size() == 6);
+    std::cout << "Test 11 (Size): Passed\n";
+
+    // Test 12: Exception on Addition of Different Dimensions
+    Matrix<int, 2, 2> matrix5({{1, 2}, {3, 4}}, MatrixDimensions<2, 2>());
+    try {
+        matrix2 + matrix5; // This should throw an exception
+        std::cout << "Test 12 (Exception on Addition of Different Dimensions): Failed\n";
+    } catch (const std::runtime_error&) {
+        std::cout << "Test 12 (Exception on Addition of Different Dimensions): Passed\n";
+    }
+}
+
+} // namespace Matrices
 
 }; // namespace Math
 
@@ -742,6 +1038,19 @@ int main(int argc, char **argv) {
 
   std::cout << ascii_to_binary << " to Hex = " << binary_to_hex << "\n";
   std::cout << ascii_to_hex << " to binary = " << hex_to_binary << "\n";
+
+  constexpr std::size_t f1{5}, f2{2};
+  constexpr std::size_t factorization = Math::factorial(f1, f2);
+  std::cout << "Factorial of " << f1 << ", " << f2 << " = " << factorization << "\n";
+
+  constexpr bool REP = true;
+  constexpr std::size_t permutation = Math::permutationFunction(f1, f2, REP);
+  std::cout << "Permutation of " << f1 << ", " << f2 << " = " << permutation << "\n";
+
+  constexpr std::size_t combination = Math::combinationFunction(f1, f2, REP);
+  std::cout << "Combination of " << f1 << ", " << f2 << " = " << combination << "\n";
+
+  Math::Matrices::runTests();
 
   return 0;
 }
