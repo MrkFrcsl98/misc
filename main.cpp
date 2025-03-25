@@ -5,12 +5,12 @@
 #include <cstdlib>
 #include <iostream>
 #include <math.h>
-#include <unordered_set>
-#include <stdint.h>
 #include <set>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <unordered_set>
 
 namespace Math {
 // Function to get the modulo class of n with respect to m
@@ -43,32 +43,23 @@ static const int getGCD(const int a, const int b) noexcept {
 // such that ax + my = gcd(a, m).
 // The 'noexcept' specifier indicates that this function does not throw exceptions.
 static const int extendedEuclideanAlgorithm(int a, int m, int &x, int &y) noexcept {
-  int x0 = 1; // Coefficient for a
-  int y0 = 0; // Coefficient for m
-  int x1 = 0; // Next coefficient for a
-  int y1 = 1; // Next coefficient for m
-  int x2 = 0; // Temporary variable for x
-  int y2 = 0; // Temporary variable for y
-  int r = 0;  // Remainder
-  int q = 0;  // Quotient
-  // Loop until m becomes zero
+  x = 1;
+  y = 0;              // Coefficients for a and m respectively
+  int x1 = 0, y1 = 1; // Next coefficients
   while (m != 0) {
-    r = a % m; // Calculate the remainder
-    q = a / m; // Calculate the quotient
-    a = m;     // Update a to m
-    m = r;     // Update m to the remainder
-    // Update coefficients using the previous values
-    x2 = x0 - q * x1;
-    y2 = y0 - q * y1;
-    x0 = x1; // Move to the next coefficient for a
-    y0 = y1; // Move to the next coefficient for m
-    x1 = x2; // Update x1 to the new coefficient for a
-    y1 = y2; // Update y1 to the new coefficient for m
+    int q = a / m; // Calculate the quotient
+    int temp = a % m;
+    a = m;
+    m = temp; // Update a and m to the remainder
+    temp = x;
+    x = x1;
+    x1 = temp - q * x1; // Update coefficients for x
+    temp = y;
+    y = y1;
+    y1 = temp - q * y1; // Update coefficients for y
   }
-  x = x0;   // Set the output parameter x to the coefficient for a
-  y = y0;   // Set the output parameter y to the coefficient for m
   return a; // Return the GCD
-};
+}
 
 // Function to check if two integers a and b are coprime
 // Returns true (1) if they are coprime (GCD is 1), otherwise returns false (0).
@@ -142,22 +133,10 @@ static constexpr int raise(const int b, const int e) noexcept {
   return i; // Return the final result
 }
 
-// Template function to generate a Fibonacci sequence of size N
-// The function fills an array with Fibonacci numbers up to the T-th-1 term.
-template <std::size_t N> static constexpr std::array<int, N> fibonacciSequence(const std::size_t T) noexcept {
-  std::array<int, N> v; // Array to hold the Fibonacci sequence
-  int a = 0;            // First Fibonacci number
-  int b = 1;            // Second Fibonacci number
-  int c = a + b;        // Next Fibonacci number (initially 1)
-  int r = 0;            // Index for filling the array
-  v[0] = c;             // Store the first Fibonacci number in the array
-
-  // Loop to generate Fibonacci numbers until the T-th term
-  while (r < T - 1) {
-    a = b;      // Update 'a' to the previous 'b'
-    b = c;      // Update 'b' to the current Fibonacci number
-    c = a + b;  // Calculate the next Fibonacci number
-    v[++r] = c; // Store the new Fibonacci number in the array
+template <std::size_t N> static constexpr std::array<int, N> fibonacciSequence() noexcept {
+  std::array<int, N> v = {0, 1}; // Initialize the array with the first two Fibonacci numbers
+  for (std::size_t i = 2; i < N; ++i) {
+    v[i] = v[i - 1] + v[i - 2]; // Calculate the next Fibonacci number
   }
   return v; // Return the array containing the Fibonacci sequence
 }
@@ -179,25 +158,15 @@ template <typename T> static constexpr bool isOdd(const T a) noexcept {
 // T: Type of elements in the array
 // N: Size of the array
 // H: Maximum possible value in the array (used for the size of the frequency array)
-template <typename T, std::size_t N, std::size_t H> static constexpr int getMode(const std::array<T, N> _s) noexcept {
-  std::size_t M = 0;                        // Variable to store the mode (most frequent value)
-  T R[H + 1];                               // Frequency array to count occurrences of each value
-  std::fill(std::begin(R), std::end(R), 0); // Initialize frequency array to 0
-
+template <typename T, std::size_t N, T H> static constexpr T getMode(const std::array<T, N> &arr) noexcept {
+  std::array<std::size_t, static_cast<std::size_t>(H) + 1> frequency = {}; // Frequency array to count occurrences of each value
   // Count occurrences of each value in the input array
-  for (int i{0}; i < N; ++i) {
-    R[_s[i]] += 1; // Increment the count for the value _s[i]
+  for (const T &value : arr) {
+    ++frequency[static_cast<std::size_t>(value)];
   }
-
   // Find the mode by checking the frequency array
-  for (int C = 0; C < std::size(R); ++C) {
-    if (M >= R[C]) {
-      continue; // Skip if the current count is not greater than the current mode
-    }
-    M = C; // Update mode to the current index if it has a higher count
-  }
-  return M; // Return the mode
-}
+  return std::distance(frequency.begin(), std::max_element(frequency.begin(), frequency.end()));
+};
 
 // Function to calculate the median of an array
 template <typename T, std::size_t N> static constexpr int getMedian(const std::array<T, N> _s) noexcept {
@@ -237,98 +206,231 @@ template <typename T, std::size_t N> static constexpr int getRange(const std::ar
 };
 
 template <typename T, std::size_t N> class Set {
+  // Internal array to hold the elements of the set
   std::array<T, N> _set;
 
 public:
+  // Default constructor
   explicit inline Set() noexcept {};
+
+  // Constructor that initializes the set with a given array
   inline Set(const std::array<T, N> &_s) noexcept : _set(_s) {};
 
+  // Returns the number of elements in the set (cardinality)
   inline constexpr std::size_t cardinality() const noexcept { return this->_set.size(); };
 
-  template <std::size_t eN> inline constexpr bool equal(const std::array<T, eN> &_o) noexcept {
-    if (this->_set.size() != _o.size())
+  // Checks if the current set is equal to another array
+  template <std::size_t eN> inline constexpr bool equal(const std::array<T, eN> &_o) const noexcept {
+    // If sizes are different, sets are not equal
+    if (N != eN)
       return false;
-    bool _i{true};
-    std::array<T, N> a1(this->_set);
-    std::array<T, eN> a2(_o);
+
+    // Create copies of the sets to sort
+    auto a1 = _set;
+    auto a2 = _o;
+
+    // Sort both sets for comparison
     std::sort(a1.begin(), a1.end());
     std::sort(a2.begin(), a2.end());
-    for (std::size_t E{0}; E < this->_set.size(); ++E) {
-      if (a1[E] != a2[E]) {
-        _i = false;
-        break;
-      }
-    };
-    return _i;
+
+    // Compare sorted arrays
+    return a1 == a2;
   };
 
-  template <typename eT, std::size_t eN> inline constexpr bool subsetOf(const std::array<eT, eN> &_o) noexcept {
-    bool i;
-    for (const T &e : this->_set) {
-      i = false;
-      for (const T &j : _o) {
-        if (e == j) {
-          i = true;
-        }
-      }
-      if (!i)
-        break;
-    }
-    return i;
+  // Checks if the current set is a subset of another array
+  template <typename eT, std::size_t eN> inline constexpr bool subsetOf(const std::array<eT, eN> &_o) const noexcept {
+    // Create an unordered_set from the other array for efficient lookup
+    std::unordered_set<eT> otherSet(_o.begin(), _o.end());
+
+    // Check if each element in the current set exists in the other set
+    return std::all_of(this->_set.begin(), this->_set.end(), [&otherSet](const T &e) { return otherSet.find(e) != otherSet.end(); });
   };
 
-  inline constexpr bool properSubsetOf(const std::array<T, N> &_o) noexcept {
-    std::set<T> a1(this->_set.begin(), this->_set.end()), a2(_o.begin(), _o.end());
-    std::size_t c{0};
-    for (const T &e : a1) {
-      if (a2.find(e) == a2.end()) {
-        return false;
-      }
-      ++c;
-    }
-    return c < a2.size();
+  // Checks if the current set is a proper subset of another array
+  template <std::size_t eN> inline constexpr bool properSubsetOf(const std::array<T, eN> &_o) const noexcept {
+    std::set<T> a1(this->_set.begin(), this->_set.end());
+    std::set<T> a2(_o.begin(), _o.end());
+
+    // Check if a1 is a subset of a2 and strictly smaller
+    return std::includes(a2.begin(), a2.end(), a1.begin(), a1.end()) && a1.size() < a2.size();
   };
 
+  // Allocates a new array to the set
   inline void alloc(const std::array<T, N> _s) noexcept {
-    this->_set = _s;
+    this->_set = _s; // Assign the new array to the internal set
   };
 
-  
+  // Union of the current set with another array
   // A∪B={x∣x∈A or x∈B}
-  template <std::size_t aS>
-  inline const std::set<T> unionOf(const std::array<T, aS>& _s) noexcept {
+  template <std::size_t aS> inline const std::set<T> unionOf(const std::array<T, aS> &_s) noexcept {
     std::set<T> s1(this->_set.begin(), this->_set.end()), s2(_s.begin(), _s.end());
-    s1.insert(s2.begin(), s2.end());
-    return s1;
+    s1.insert(s2.begin(), s2.end()); // Insert elements from the second set
+    return s1;                       // Return the union set
   };
 
+  // Intersection of the current set with another array
   // A∩B={x∣x∈A and x∈B}
-  template <std::size_t aS>
-  inline const std::set<T> intersectionOf(const std::array<T, aS>& _s) noexcept {
+  template <std::size_t aS> inline const std::set<T> intersectionOf(const std::array<T, aS> &_s) noexcept {
     std::set<T> s1(this->_set.begin(), this->_set.end()), s2(_s.begin(), _s.end()), s3;
-    for(const T& e: s1){
-        if(s2.find(e) != s2.end()){
-            s3.insert(e);
-        }
+    // Find common elements between the two sets
+    for (const T &e : s1) {
+      if (s2.find(e) != s2.end()) {
+        s3.insert(e); // Insert common element into the result set
+      }
     }
-    return s3;
+    return s3; // Return the intersection set containing common elements
   };
 
+  // Complement of the current set with respect to another array
   // A′={x∈U∣x∈/A}
-  template <std::size_t aS>
-  inline const std::set<T> complementOf(const std::array<T, aS>& _s) noexcept {
+  template <std::size_t aS> inline const std::set<T> complementOf(const std::array<T, aS> &_s) noexcept {
     std::set<T> s1(this->_set.begin(), this->_set.end()), s2(_s.begin(), _s.end()), s3;
-    for(const T& e: s2){
-        if(s1.find(e) == s1.end()){
-            s3.insert(e);
-        }
+    // Find elements in the second set that are not in the current set
+    for (const T &e : s2) {
+      if (s1.find(e) == s1.end()) {
+        s3.insert(e); // Insert element into the result set if not found in the current set
+      }
     }
-    return s3;
+    return s3; // Return the complement set
   };
-  
 
-  ~Set() noexcept { this->_set = {}; };
+  // Destructor to clean up the set
+  ~Set() noexcept {
+    this->_set = {}; // Clear the internal array (optional, as it will be automatically destroyed)
+  };
 };
+
+// Converts a string of ASCII characters to a binary string representation.
+const std::string asciiToBinary(const std::string &input) noexcept {
+  // Lookup table for converting each ASCII character to its 8-bit binary representation.
+  static const char *const lookup[256] = {
+      "00000000", "00000001", "00000010", "00000011", "00000100", "00000101", "00000110", "00000111", "00001000", "00001001", "00001010", "00001011", "00001100", "00001101", "00001110", "00001111",
+      "00010000", "00010001", "00010010", "00010011", "00010100", "00010101", "00010110", "00010111", "00011000", "00011001", "00011010", "00011011", "00011100", "00011101", "00011110", "00011111",
+      "00100000", "00100001", "00100010", "00100011", "00100100", "00100101", "00100110", "00100111", "00101000", "00101001", "00101010", "00101011", "00101100", "00101101", "00101110", "00101111",
+      "00110000", "00110001", "00110010", "00110011", "00110100", "00110101", "00110110", "00110111", "00111000", "00111001", "00111010", "00111011", "00111100", "00111101", "00111110", "00111111",
+      "01000000", "01000001", "01000010", "01000011", "01000100", "01000101", "01000110", "01000111", "01001000", "01001001", "01001010", "01001011", "01001100", "01001101", "01001110", "01001111",
+      "01010000", "01010001", "01010010", "01010011", "01010100", "01010101", "01010110", "01010111", "01011000", "01011001", "01011010", "01011011", "01011100", "01011101", "01011110", "01011111",
+      "01100000", "01100001", "01100010", "01100011", "01100100", "01100101", "01100110", "01100111", "01101000", "01101001", "01101010", "01101011", "01101100", "01101101", "01101110", "01101111",
+      "01110000", "01110001", "01110010", "01110011", "01110100", "01110101", "01110110", "01110111", "01111000", "01111001", "01111010", "01111011", "01111100", "01111101", "01111110", "01111111",
+      "10000000", "10000001", "10000010", "10000011", "10000100", "10000101", "10000110", "10000111", "10001000", "10001001", "10001010", "10001011", "10001100", "10001101", "10001110", "10001111",
+      "10010000", "10010001", "10010010", "10010011", "10010100", "10010101", "10010110", "10010111", "10011000", "10011001", "10011010", "10011011", "10011100", "10011101", "10011110", "10011111",
+      "10100000", "10100001", "10100010", "10100011", "10100100", "10100101", "10100110", "10100111", "10101000", "10101001", "10101010", "10101011", "10101100", "10101101", "10101110", "10101111",
+      "10110000", "10110001", "10110010", "10110011", "10110100", "10110101", "10110110", "10110111", "10111000", "10111001", "10111010", "10111011", "10111100", "10111101", "10111110", "10111111",
+      "11000000", "11000001", "11000010", "11000011", "11000100", "11000101", "11000110", "11000111", "11001000", "11001001", "11001010", "11001011", "11001100", "11001101", "11001110", "11001111",
+      "11010000", "11010001", "11010010", "11010011", "11010100", "11010101", "11010110", "11010111", "11011000", "11011001", "11011010", "11011011", "11011100", "11011101", "11011110", "11011111",
+      "11100000", "11100001", "11100010", "11100011", "11100100", "11100101", "11100110", "11100111", "11101000", "11101001", "11101010", "11101011", "11101100", "11101101", "11101110", "11101111",
+      "11110000", "11110001", "11110010", "11110011", "11110100", "11110101", "11110110", "11110111", "11111000", "11111001", "11111010", "11111011", "11111100", "11111101", "11111110", "11111111"};
+
+  // Initialize an empty string to hold the binary result.
+  std::string result;
+  // Reserve space for the result string to optimize memory allocation.
+  result.reserve(input.length() * 8); // Each character will be represented by 8 binary digits.
+
+  // Iterate over each character in the input string.
+  for (unsigned char character : input) {
+    // Append the corresponding binary representation from the lookup table.
+    result.append(lookup[character]);
+  }
+
+  // Return the final binary string representation.
+  return result;
+};
+
+// Converts a string of ASCII characters to a hexadecimal string representation.
+const std::string asciiToHex(const std::string &_d) noexcept {
+  // String containing hexadecimal digits for conversion.
+  static const char hexDigits[17] = "0123456789ABCDEF";
+  // Initialize an empty string to hold the hexadecimal result.
+  std::string _r;
+  // Reserve space for the result string to optimize memory allocation.
+  _r.reserve(_d.length() * 2); // Each character will be represented by 2 hex digits.
+
+  // Iterate over each character in the input string.
+  for (unsigned char E : _d) {
+    // Get the high nibble (4 bits) of the character and convert it to a hex digit.
+    _r += hexDigits[E >> 4]; // Shift right by 4 bits to get the high nibble.
+    // Get the low nibble (4 bits) of the character and convert it to a hex digit.
+    _r += hexDigits[E & 0x0F]; // Mask with 0x0F to get the low nibble.
+  }
+
+  // Return the final hexadecimal string representation.
+  return _r;
+};
+
+// Converts a binary string representation to a string of ASCII characters.
+const std::string binaryToAscii(const std::string &binary) noexcept {
+  std::string result;
+  // Reserve space for the result string to optimize memory allocation.
+  result.reserve(binary.length() / 8); // Each ASCII character is represented by 8 bits.
+
+  // Process each 8 bits (1 byte) in the binary string.
+  for (size_t i = 0; i < binary.length(); i += 8) {
+    // Convert the 8-bit binary substring to an ASCII character.
+    std::string byteString = binary.substr(i, 8);
+    char asciiChar = static_cast<char>(std::stoi(byteString, nullptr, 2)); // Convert binary to decimal.
+    result += asciiChar;                                                   // Append the ASCII character to the result.
+  }
+
+  // Return the final ASCII string representation.
+  return result;
+}
+
+// Converts a hexadecimal string representation to a string of ASCII characters.
+const std::string hexToAscii(const std::string &hex) noexcept {
+  std::string result;
+  // Reserve space for the result string to optimize memory allocation.
+  result.reserve(hex.length() / 2); // Each ASCII character is represented by 2 hex digits.
+
+  // Process each pair of hex digits in the string.
+  for (size_t i = 0; i < hex.length(); i += 2) {
+    // Convert the 2 hex digits to an ASCII character.
+    std::string byteString = hex.substr(i, 2);
+    char asciiChar = static_cast<char>(std::stoi(byteString, nullptr, 16)); // Convert hex to decimal.
+    result += asciiChar;                                                    // Append the ASCII character to the result.
+  }
+
+  // Return the final ASCII string representation.
+  return result;
+}
+
+// Converts a binary string representation to a hexadecimal string representation.
+const std::string binaryToHex(const std::string &binary) noexcept {
+  static const char hexDigits[] = "0123456789ABCDEF";
+  std::string result;
+  // Reserve space for the result string to optimize memory allocation.
+  result.reserve((binary.length() + 3) / 4); // Each 4 bits (1 nibble) is represented by 1 hex digit.
+
+  // Process each 4 bits (1 nibble) in the binary string.
+  for (size_t i = 0; i < binary.length(); i += 4) {
+    // Convert the 4-bit binary substring to a hex digit.
+    std::string nibbleString = binary.substr(i, 4);
+    int hexValue = std::stoi(nibbleString, nullptr, 2); // Convert binary to decimal.
+    result += hexDigits[hexValue];                      // Append the hex digit to the result.
+  }
+
+  // Return the final hexadecimal string representation.
+  return result;
+}
+
+// Converts a hexadecimal string representation to a binary string representation.
+const std::string hexToBinary(const std::string &hex) noexcept {
+  std::string result;
+  // Reserve space for the result string to optimize memory allocation.
+  result.reserve(hex.length() * 4); // Each hex digit is represented by 4 bits.
+
+  // Process each hex digit in the string.
+  for (char hexChar : hex) {
+    // Convert the hex digit to its binary representation.
+    int hexValue = (hexChar >= '0' && hexChar <= '9') ? hexChar - '0' : (hexChar - 'A' + 10);
+    // Append the 4-bit binary representation to the result.
+    for (int i = 3; i >= 0; --i) {
+      result += (hexValue & (1 << i)) ? '1' : '0'; // Check each bit and append '1' or '0'.
+    }
+  }
+
+  // Return the final binary string representation.
+  return result;
+}
 
 }; // namespace Math
 
@@ -523,7 +625,7 @@ int main(int argc, char **argv) {
   std::cout << "Raising " << base << " to the power of " << exp << ", " << base << "^" << exp << " = " << raise2 << "\n";
 
   constexpr std::size_t fst = 15;
-  constexpr std::array<int, fst> fibSeq = Math::fibonacciSequence<fst>(fst);
+  constexpr std::array<int, fst> fibSeq = Math::fibonacciSequence<fst>();
 
   std::cout << "Fibonacci Sequence: {";
   for (const int i : fibSeq) {
@@ -569,8 +671,8 @@ int main(int argc, char **argv) {
     std::cout << i << ", ";
   std::cout << "} = " << getRange << "\n";
 
-  std::array<int, 5> setA(            {1, 2, 3, 4, 5}  );
-  std::array<int, setA.size()> setB(  {1, 2, 3, 4, 5}  );
+  std::array<int, 5> setA({1, 2, 3, 4, 5});
+  std::array<int, setA.size()> setB({1, 2, 3, 4, 5});
 
   Math::Set<int, setA.size()> newSet(setA);
   std::cout << "SetA cardinality: " << newSet.cardinality() << "\n";
@@ -588,30 +690,58 @@ int main(int argc, char **argv) {
   std::set<int> unionSet = newSet.unionOf(setB);
   std::set<int> intersectionSet = newSet.intersectionOf(setB);
   std::set<int> complementSet = newSet.complementOf(setB);
-  
+
   std::cout << "Union of: {";
-  for(const auto e: setA) std::cout << e << ", ";
+  for (const auto e : setA)
+    std::cout << e << ", ";
   std::cout << "} and {";
-  for(const auto e: setB) std::cout << e << ", ";
+  for (const auto e : setB)
+    std::cout << e << ", ";
   std::cout << "} => {";
-  for(const auto e: unionSet) std::cout << e << ", ";
+  for (const auto e : unionSet)
+    std::cout << e << ", ";
   std::cout << "}\n";
 
   std::cout << "Intersection of: {";
-  for(const auto e: setA) std::cout << e << ", ";
+  for (const auto e : setA)
+    std::cout << e << ", ";
   std::cout << "} and {";
-  for(const auto e: setB) std::cout << e << ", ";
+  for (const auto e : setB)
+    std::cout << e << ", ";
   std::cout << "} => {";
-  for(const auto e: intersectionSet) std::cout << e << ", ";
+  for (const auto e : intersectionSet)
+    std::cout << e << ", ";
   std::cout << "}\n";
 
   std::cout << "Complement of: {";
-  for(const auto e: setA) std::cout << e << ", ";
+  for (const auto e : setA)
+    std::cout << e << ", ";
   std::cout << "} from U {";
-  for(const auto e: setB) std::cout << e << ", ";
+  for (const auto e : setB)
+    std::cout << e << ", ";
   std::cout << "} => {";
-  for(const auto e: complementSet) std::cout << e << ", ";
+  for (const auto e : complementSet)
+    std::cout << e << ", ";
   std::cout << "}\n";
+
+  std::string asciiText("AB");
+  std::string ascii_to_binary(Math::asciiToBinary(asciiText));
+  std::cout << asciiText << " in binary = " << ascii_to_binary << "\n";
+
+  std::string ascii_to_hex(Math::asciiToHex(asciiText));
+  std::cout << asciiText << " in Hex = " << ascii_to_hex << "\n";
+
+  std::string binary_to_ascii(Math::binaryToAscii(ascii_to_binary));
+  std::string hex_to_ascii(Math::hexToAscii(ascii_to_hex));
+
+  std::cout << ascii_to_binary << " to ASCII = " << binary_to_ascii << "\n";
+  std::cout << ascii_to_hex << " to ASCII = " << hex_to_ascii << "\n";
+
+  std::string binary_to_hex(Math::binaryToHex(ascii_to_binary));
+  std::string hex_to_binary(Math::hexToBinary(ascii_to_hex));
+
+  std::cout << ascii_to_binary << " to Hex = " << binary_to_hex << "\n";
+  std::cout << ascii_to_hex << " to binary = " << hex_to_binary << "\n";
 
   return 0;
 }
