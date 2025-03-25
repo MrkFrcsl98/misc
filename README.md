@@ -104,7 +104,7 @@ To use the functions and classes provided in this repository, include the releva
 
 ```cpp
 #include <iostream>
-#include "math_functions.h"
+#include "misc.cpp"
 
 int main() {
     int n = 13, m = 5;
@@ -131,11 +131,6 @@ g++ -o main main.cpp
 ./main
 ```
 
-## Contributing
-
-Contributions are welcome! If you have any improvements or new features to add, please submit a pull request. Ensure that you include tests for any new functionality.
-
-## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
