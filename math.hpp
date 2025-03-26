@@ -16,6 +16,8 @@
 #include <stdexcept>
 #include <cassert>
 
+#define _BMATHOP_ 0
+
 
 namespace Math {
 // Function to get the modulo class of n with respect to m
