@@ -3,6 +3,8 @@
 int main(int argc, char **argv) {
 
   {
+
+    #ifdef _BMATHOP_
     constexpr int M = 5;
 
     // Definition of congruence classes for modulo "5"
@@ -321,6 +323,8 @@ int main(int argc, char **argv) {
   std::cout << "Combination of " << f1 << ", " << f2 << " = " << combination << "\n";
 
   Math::Matrices::runTests();
+
+  #endif
 
   return 0;
 }
