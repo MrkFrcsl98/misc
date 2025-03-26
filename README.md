@@ -13,8 +13,6 @@ This repository contains a collection of mathematical concepts and algorithms im
   - [ASCII and Binary Conversions](#ascii-and-binary-conversions)
 - [Usage](#usage)
 - [Tests](#tests)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Overview
 
@@ -104,7 +102,7 @@ To use the functions and classes provided in this repository, include the releva
 
 ```cpp
 #include <iostream>
-#include "misc.cpp"
+#include "math.hpp"
 
 int main() {
     int n = 13, m = 5;
@@ -113,7 +111,6 @@ int main() {
     int a = 18, b = 5;
     std::cout << "GCD of 18 and 5 = " << Math::getGCD(a, b) << std::endl;
 
-    // Other examples...
     return 0;
 }
 ```
